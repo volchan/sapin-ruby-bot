@@ -52,6 +52,10 @@ class Game
     @name = name
   end
 
+  def update_boss
+    RestClient.get("http://bit-boss.volchan.fr/update_boss/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}")
+  end
+
   def find_avatar(name)
     api_call = RestClient.get("https://api.twitch.tv/kraken/channels/#{name}?client_id=#{ENV['TWITCH_CLIENT_ID']}")
     parsed_api_call = JSON.parse(api_call)
@@ -81,14 +85,15 @@ class Game
     name!(name)
     reset_hp
     boss_avatar!(name)
-    @boss.update(
-      bot: @heroku_bot,
-      name: @name,
-      max_hp: @max_hp,
-      current_hp: @current_hp,
-      shield: @shield,
-      avatar: @avatar
-    )
+    update_boss
+    # @boss.update(
+    #   bot: @heroku_bot,
+    #   name: @name,
+    #   max_hp: @max_hp,
+    #   current_hp: @current_hp,
+    #   shield: @shield,
+    #   avatar: @avatar
+    # )
     logger.info("BOSS_GAME: #{@name} est le nouveau boss !")
     # @bot.send_to_twitch_chat("#{@name} est le nouveau boss !")
   end
@@ -97,14 +102,15 @@ class Game
     name!(name)
     reset_hp
     boss_avatar!(name)
-    @boss = BossGame.create(
-      bot: @heroku_bot,
-      name: @name,
-      max_hp: @max_hp,
-      current_hp: @current_hp,
-      shield: @shield,
-      avatar: @avatar
-    )
+    logger.info(@heroku_bot.token)
+    logger.info(@heroku_bot.id)
+    logger.info(@name)
+    logger.info(@max_hp)
+    logger.info(@current_hp)
+    logger.info(@shield)
+    logger.info(@avatar)
+    RestClient.get("http://bit-boss.volchan.fr/create_boss?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}")
+    @boss = BossGame.last
     logger.info("BOSS_GAME: #{@name} est le nouveau boss !")
     # @bot.send_to_twitch_chat("#{@name} est le nouveau boss !")
   end
@@ -128,14 +134,16 @@ class Game
       logger.info("BOSS_GAME: #{username} à détruit le bouclier de #{@name} !")
       # @bot.send_to_twitch_chat("#{username} à détruit le bouclier de #{@name} !")
     end
-    @boss.update(shield: @shield)
+    update_boss
+    # @boss.update(shield: @shield)
     previous_shield
   end
 
   def add_shield(amount)
     @shield += amount if amount > 0
     logger.info("BOSS_GAME: #{@name} à ajouté #{amount} points à son bouclier ! #{@shield} pts")
-    @boss.update(shield: @shield)
+    update_boss
+    # @boss.update(shield: @shield)
     # @bot.send_to_twitch_chat("#{@name} à ajouté #{amount} points à son bouclier ! #{@shield} pts")
   end
 
@@ -152,7 +160,8 @@ class Game
       logger.info("BOSS_GAME: l'attaque de #{username} n'était pas assez puissante pour faire de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
       # @bot.send_to_twitch_chat("l'attaque de #{username} n'était pas assez puissante pour faire de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
     end
-    @boss.update(current_hp: @current_hp)
+    update_boss
+    # @boss.update(current_hp: @current_hp)
   end
 
   def heal_boss(amount)
@@ -173,7 +182,8 @@ class Game
     else
       add_shield(amount)
     end
-    @boss.update(current_hp: @current_hp)
+    update_boss
+    # @boss.update(current_hp: @current_hp)
   end
 
   def sub_event(attr)
