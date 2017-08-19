@@ -49,18 +49,28 @@ class TwitchBot
         sub_match = line.match(/.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/)
         logger.info("LINE => #{line}")
         logger.info("SUB => username: #{sub_match[:username]}, type: #{sub_match[:type]}, plan: #{sub_match[:plan]}, month: #{sub_match[:month]}, message: #{sub_match[:message] || 'nil'}")
-        @boss.new_event(sub: { username: sub_match[:username], plan: sub_match[:plan] })
+        @boss.new_event(sub: { username: sub_match[:username], plan: sub_match[:plan] }) if live_state?
       elsif message =~ /!stop/
         stop!
       elsif message =~ /!start/
         start!
       elsif bits
         logger.info("BITS => username: #{bits[:username]}, total: #{bits[:amount]}")
-        @boss.new_event(bits: { username: bits[:username], amount: bits[:amount] })
+        @boss.new_event(bits: { username: bits[:username], amount: bits[:amount] }) if live_state?
       end
     end
     @running = false
     heroku_bot.update(running: @running)
+  end
+
+  def live_state?
+    api_call = RestClient.get("https://api.twitch.tv/kraken/streams/#{@channel}?client_id=#{ENV['TWITCH_CLIENT_ID']}}")
+    parsed_api_call = JSON.parse(api_call)
+    stream = parsed_api_call['stream']
+    unless stream.nil?
+      stream_type = stream['stream_type']
+      stream_type == 'live'
+    end
   end
 
   def send_to_twitch(message)
@@ -73,12 +83,12 @@ class TwitchBot
   end
 
   def start!
-    send_to_twitch_chat("now starting FeelsAmazingMan")
+    send_to_twitch_chat('now starting FeelsAmazingMan')
     @running = true
   end
 
   def stop!
-    send_to_twitch_chat("See you soon FeelsBadMan")
+    send_to_twitch_chat('See you soon FeelsBadMan')
     @running = false
   end
 
