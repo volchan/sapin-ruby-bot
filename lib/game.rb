@@ -37,6 +37,7 @@ class Game
   end
 
   def new_event(attr)
+    check_boss
     if attr[:sub]
       subscriber = attr[:sub]
       sub_event(username: subscriber[:username], plan: subscriber[:plan])
@@ -47,6 +48,13 @@ class Game
   end
 
   private
+
+  def check_boss
+    heroku_boss = BossGame.find_by(bot: heroku_bot)
+    unless @boss == heroku_boss
+      @boss = heroku_boss
+    end
+  end
 
   def name!(name)
     @name = name
