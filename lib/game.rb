@@ -34,6 +34,7 @@ class Game
     @current_hp = (@boss && @boss.current_hp) || 0
     @shield = (@boss && @boss.shield) || 0
     @avatar = (@boss && @boss.avatar) || nil
+    @saved_at
   end
 
   def new_event(attr)
@@ -50,9 +51,10 @@ class Game
   private
 
   def check_boss
-    heroku_boss = BossGame.find_by(bot: heroku_bot)
-    unless @boss == heroku_boss
-      @boss = heroku_boss
+    return if @boss.nil?
+    heroku_boss = BossGame.find_by(bot: @heroku_bot)
+    if @saved_at != heroku_boss.saved_at
+      @saved_at = heroku_boss
     end
   end
 
@@ -60,8 +62,41 @@ class Game
     @name = name
   end
 
+  def add_timestamp
+    @saved_at = Time.now
+  end
+  def update_current_hp
+    add_timestamp
+    action = 'update_current_hp'
+    params = "&current_hp=#{@current_hp}"
+    send_request(action, params)
+  end
+
+  def update_shield
+    add_timestamp
+    action = 'update_shield'
+    params = "&shield=#{@shield}"
+    send_request(action, params)
+  end
+
   def update_boss
-    RestClient.get("http://bit-boss.volchan.fr/update_boss/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}")
+    add_timestamp
+    action = 'update_boss'
+    params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
+    send_request(action, params)
+  end
+
+  def create_boss
+    add_timestamp
+    action = 'create_boss'
+    params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
+    request_url = "https://volchan-web-twitch-boss-stagin.herokuapp.com/#{action}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{params}"
+    RestClient.get(request_url)
+  end
+
+  def send_request(action, request_params)
+    request_url = "https://volchan-web-twitch-boss-stagin.herokuapp.com/#{action}/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{request_params}"
+    RestClient.get(request_url)
   end
 
   def find_avatar(name)
@@ -89,38 +124,20 @@ class Game
 
   def new_boss(name)
     logger.info("BOSS_GAME: #{@name} à était vaincu !")
-    # @bot.send_to_twitch_chat("#{@name} à était vaincu !")
     name!(name)
     reset_hp
     boss_avatar!(name)
     update_boss
-    # @boss.update(
-    #   bot: @heroku_bot,
-    #   name: @name,
-    #   max_hp: @max_hp,
-    #   current_hp: @current_hp,
-    #   shield: @shield,
-    #   avatar: @avatar
-    # )
     logger.info("BOSS_GAME: #{@name} est le nouveau boss !")
-    # @bot.send_to_twitch_chat("#{@name} est le nouveau boss !")
   end
 
   def init_boss(name)
     name!(name)
     reset_hp
     boss_avatar!(name)
-    logger.info(@heroku_bot.token)
-    logger.info(@heroku_bot.id)
-    logger.info(@name)
-    logger.info(@max_hp)
-    logger.info(@current_hp)
-    logger.info(@shield)
-    logger.info(@avatar)
-    RestClient.get("http://bit-boss.volchan.fr/create_boss?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}")
+    create_boss
     @boss = BossGame.last
     logger.info("BOSS_GAME: #{@name} est le nouveau boss !")
-    # @bot.send_to_twitch_chat("#{@name} est le nouveau boss !")
   end
 
   def sub_damage_or_heal(plan)
@@ -136,40 +153,31 @@ class Game
     previous_shield = @shield
     @shield -= damages
     logger.info("BOSS_GAME: #{username} inflige #{damages} points de dégâts au bouclier de #{@name} !")
-    # @bot.send_to_twitch_chat("#{username} inflige #{damages} points de dégâts au bouclier de #{@name} !")
     if @shield <= 0
       @shield = 0
       logger.info("BOSS_GAME: #{username} à détruit le bouclier de #{@name} !")
-      # @bot.send_to_twitch_chat("#{username} à détruit le bouclier de #{@name} !")
     end
-    update_boss
-    # @boss.update(shield: @shield)
+    update_shield
     previous_shield
   end
 
   def add_shield(amount)
     @shield += amount if amount > 0
     logger.info("BOSS_GAME: #{@name} à ajouté #{amount} points à son bouclier ! #{@shield} pts")
-    update_boss
-    # @boss.update(shield: @shield)
-    # @bot.send_to_twitch_chat("#{@name} à ajouté #{amount} points à son bouclier ! #{@shield} pts")
+    update_shield
   end
 
   def attack_boss(amount, username)
     damages = amount
     logger.info("BOSS_GAME: #{username} attaque #{@name} avec une puissance de #{damages} !")
-    # @bot.send_to_twitch_chat("#{username} attaque #{@name} avec une puissance de #{damages} !")
     damages -= attack_shield(damages, username) if @shield > 0
     if damages > 0
       @current_hp -= damages
       logger.info("BOSS_GAME: #{username} inflige #{damages} points de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
-      # @bot.send_to_twitch_chat("#{username} inflige #{damages} points de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
     else
       logger.info("BOSS_GAME: l'attaque de #{username} n'était pas assez puissante pour faire de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
-      # @bot.send_to_twitch_chat("l'attaque de #{username} n'était pas assez puissante pour faire de dégâts à #{@name} ! #{@current_hp}/#{@max_hp}")
     end
-    update_boss
-    # @boss.update(current_hp: @current_hp)
+    update_current_hp
   end
 
   def heal_boss(amount)
@@ -179,19 +187,18 @@ class Game
       if hp_to_heal <= heal
         @current_hp += hp_to_heal
         logger.info("BOSS_GAME: #{@name} c'est soigné pour #{hp_to_heal} hp ! #{@current_hp}/#{@max_hp}")
-        # @bot.send_to_twitch_chat("#{@name} c'est soigné pour #{hp_to_heal} hp ! #{@current_hp}/#{@max_hp}")
         shield_amount = (heal - hp_to_heal)
+        update_current_hp
         add_shield(shield_amount)
+        update_shield
       else
         @current_hp += heal
         logger.info("BOSS_GAME: #{@name} c'est soigné pour #{heal} hp ! #{@current_hp}/#{@max_hp}")
-        # @bot.send_to_twitch_chat("#{@name} c'est soigné pour #{heal} hp ! #{@current_hp}/#{@max_hp}")
       end
     else
       add_shield(amount)
+      update_shield
     end
-    update_boss
-    # @boss.update(current_hp: @current_hp)
   end
 
   def sub_event(attr)
