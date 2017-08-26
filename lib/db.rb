@@ -14,7 +14,7 @@ end
 
 class Bot < ActiveRecord::Base
   belongs_to :user
-  has_many :boss_games, dependent: :destroy
+  has_one :boss_games, dependent: :destroy
   before_create :generate_token
 
   private

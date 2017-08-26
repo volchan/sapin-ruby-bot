@@ -114,6 +114,11 @@ class TwitchBot
   def initialize_boss(heroku_bot)
     logger.info('initializing boss...')
     @boss = Game.new(@logger, self, heroku_bot)
-    logger.info("boss initialized #{@boss.inspect}")
+    logger.info('boss initialized...')
+    logger.info(@boss.name)
+    logger.info(@boss.avatar)
+    logger.info(@boss.shield)
+    logger.info("#{@boss.current_hp}/#{@boss.max_hp}")
+    logger.info(@boss.saved_at)
   end
 end

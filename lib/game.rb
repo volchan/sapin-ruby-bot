@@ -23,10 +23,10 @@ require 'rest-client'
 require 'json'
 
 class Game
-  attr_reader :name, :max_hp, :shield, :boss_image, :logger, :bot
+  attr_reader :name,:current_hp, :max_hp, :shield, :avatar, :saved_at, :logger, :bot
   def initialize(logger, bot, heroku_bot)
     @heroku_bot = heroku_bot
-    @boss = init_boss('no boss yet!')
+    @boss = BossGame.find_by(bot: heroku_bot) || init_boss('no boss yet!')
     @bot = bot
     @logger = logger
     @name = (@boss && @boss.name) || nil
@@ -34,7 +34,7 @@ class Game
     @current_hp = (@boss && @boss.current_hp) || 0
     @shield = (@boss && @boss.shield) || 0
     @avatar = (@boss && @boss.avatar) || nil
-    @saved_at
+    @saved_at = nil
   end
 
   def new_event(attr)
