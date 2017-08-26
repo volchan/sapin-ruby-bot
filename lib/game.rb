@@ -90,12 +90,12 @@ class Game
     add_timestamp
     action = 'create_boss'
     params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
-    request_url = "https://volchan-web-twitch-boss-stagin.herokuapp.com/#{action}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{params}"
+    request_url = "http://bit-boss.volchan.fr/#{action}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{params}"
     RestClient.get(request_url)
   end
 
   def send_request(action, request_params)
-    request_url = "https://volchan-web-twitch-boss-stagin.herokuapp.com/#{action}/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{request_params}"
+    request_url = "http://bit-boss.volchan.fr/#{action}/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{request_params}"
     RestClient.get(request_url)
   end
 
