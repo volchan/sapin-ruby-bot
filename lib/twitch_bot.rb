@@ -48,7 +48,12 @@ class TwitchBot
       elsif usernotice
         sub_match = line.match(/.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/)
         logger.info("LINE => #{line}")
-        logger.info("SUB => username: #{sub_match[:username]}, type: #{sub_match[:type]}, plan: #{sub_match[:plan]}, month: #{sub_match[:month]}, message: #{sub_match[:message] || 'nil'}")
+        username = sub_match[:username]
+        if username.blank?
+          second_match = line.match(/.*;system-msg=(?<username>\w*).*/)
+          username = second_match[:username]
+        end
+        logger.info("SUB => username: #{username}, type: #{sub_match[:type]}, plan: #{sub_match[:plan]}, month: #{sub_match[:month]}, message: #{sub_match[:message] || 'nil'}")
         @boss.new_event(sub: { username: sub_match[:username], plan: sub_match[:plan] }) if live_state?
       elsif message =~ /!stop/
         stop!
@@ -64,7 +69,7 @@ class TwitchBot
   end
 
   def live_state?
-    api_call = RestClient.get("https://api.twitch.tv/kraken/streams/#{@channel}?client_id=#{ENV['TWITCH_CLIENT_ID']}}")
+    api_call = RestClient.get("https://api.twitch.tv/kraken/streams/#{@channel}?client_id=#{ENV['TWITCH_CLIENT_ID']}")
     parsed_api_call = JSON.parse(api_call)
     stream = parsed_api_call['stream']
     unless stream.nil?

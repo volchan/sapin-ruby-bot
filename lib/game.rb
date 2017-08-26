@@ -26,7 +26,7 @@ class Game
   attr_reader :name, :max_hp, :shield, :boss_image, :logger, :bot
   def initialize(logger, bot, heroku_bot)
     @heroku_bot = heroku_bot
-    @boss = BossGame.find_by(bot: heroku_bot) || nil
+    @boss = init_boss('no boss yet!')
     @bot = bot
     @logger = logger
     @name = (@boss && @boss.name) || nil
@@ -133,11 +133,12 @@ class Game
 
   def init_boss(name)
     name!(name)
-    reset_hp
-    boss_avatar!(name)
+    @current_hp = 0
+    @max_hp = 0
+    @shield = 0
+    @avatar = nil
     create_boss
     @boss = BossGame.last
-    logger.info("BOSS_GAME: #{@name} est le nouveau boss !")
   end
 
   def sub_damage_or_heal(plan)
