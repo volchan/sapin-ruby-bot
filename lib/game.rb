@@ -21,6 +21,7 @@ require 'logger'
 require 'socket'
 require 'rest-client'
 require 'json'
+require 'uri'
 
 class Game
   attr_reader :name,:current_hp, :max_hp, :shield, :avatar, :saved_at, :logger, :bot
@@ -91,12 +92,14 @@ class Game
     action = 'create_boss'
     params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
     request_url = "http://bit-boss.volchan.fr/#{action}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{params}"
-    RestClient.get(request_url)
+    encoded_request_url = URI.encode(request_url)
+    RestClient.get(encoded_request_url)
   end
 
   def send_request(action, request_params)
     request_url = "http://bit-boss.volchan.fr/#{action}/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{request_params}"
-    RestClient.get(request_url)
+    encoded_request_url = URI.encode(request_url)
+    RestClient.get(encoded_request_url)
   end
 
   def find_avatar(name)
