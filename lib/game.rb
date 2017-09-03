@@ -35,7 +35,7 @@ class Game
     @current_hp = (@boss && @boss.current_hp) || 0
     @shield = (@boss && @boss.shield) || 0
     @avatar = (@boss && @boss.avatar) || nil
-    @saved_at = nil
+    @saved_at = (@boss && @boss.saved_at) || nil
   end
 
   def new_event(attr)
@@ -52,43 +52,64 @@ class Game
   private
 
   def check_boss
+    logger.info('create boss')
     return if @boss.nil?
     heroku_boss = BossGame.find_by(bot: @heroku_bot)
+    logger.info(heroku_boss.saved_at)
+    logger.info(@saved_at)
     if @saved_at != heroku_boss.saved_at
-      @saved_at = heroku_boss
+      @boss = heroku_boss
     end
   end
+
+  def sub_event(attr)
+    if @name.nil?
+      init_boss(attr[:username])
+    elsif attr[:username] == @name
+      heal_boss(sub_damage_or_heal(attr[:plan]).to_i)
+    else
+      attack_boss(sub_damage_or_heal(attr[:plan]).to_i, attr[:username])
+      new_boss(attr[:username]) if @current_hp <= 0
+    end
+  end
+
+  def bits_event(attr)
+    if @name.nil?
+      init_boss(attr[:username])
+    elsif attr[:username] == @name
+      heal_boss(attr[:amount].to_i)
+    else
+      attack_boss(attr[:amount].to_i, attr[:username])
+      new_boss(attr[:username]) if @current_hp <= 0
+    end
+  end
+
 
   def name!(name)
     @name = name
   end
 
-  def add_timestamp
-    @saved_at = Time.now
-  end
   def update_current_hp
-    add_timestamp
     action = 'update_current_hp'
     params = "&current_hp=#{@current_hp}"
     send_request(action, params)
   end
 
   def update_shield
-    add_timestamp
     action = 'update_shield'
     params = "&shield=#{@shield}"
     send_request(action, params)
   end
 
   def update_boss
-    add_timestamp
     action = 'update_boss'
     params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
     send_request(action, params)
   end
 
   def create_boss
-    add_timestamp
+    @saved_at = Time.now
+    p @saved_at
     action = 'create_boss'
     params = "&name=#{@name}&max_hp=#{@max_hp}&current_hp=#{@current_hp}&shield=#{@shield}&avatar=#{@avatar}"
     request_url = "http://bit-boss.volchan.fr/#{action}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{params}"
@@ -97,8 +118,10 @@ class Game
   end
 
   def send_request(action, request_params)
+    @saved_at = Time.now
     request_url = "http://bit-boss.volchan.fr/#{action}/#{@boss.id}/?token=#{@heroku_bot.token}&bot_id=#{@heroku_bot.id}&saved_at=#{@saved_at}#{request_params}"
     encoded_request_url = URI.encode(request_url)
+    logger.info(encoded_request_url)
     RestClient.get(encoded_request_url)
   end
 
@@ -202,28 +225,6 @@ class Game
     else
       add_shield(amount)
       update_shield
-    end
-  end
-
-  def sub_event(attr)
-    if @name.nil?
-      init_boss(attr[:username])
-    elsif attr[:username] == @name
-      heal_boss(sub_damage_or_heal(attr[:plan]).to_i)
-    else
-      attack_boss(sub_damage_or_heal(attr[:plan]).to_i, attr[:username])
-      new_boss(attr[:username]) if @current_hp <= 0
-    end
-  end
-
-  def bits_event(attr)
-    if @name.nil?
-      init_boss(attr[:username])
-    elsif attr[:username] == @name
-      heal_boss(attr[:amount].to_i)
-    else
-      attack_boss(attr[:amount].to_i, attr[:username])
-      new_boss(attr[:username]) if @current_hp <= 0
     end
   end
 end

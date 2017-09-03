@@ -49,7 +49,7 @@ class TwitchBot
         sub_match = line.match(/.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/)
         logger.info("LINE => #{line}")
         username = sub_match[:username]
-        if username.blank?
+        if username.empty?
           second_match = line.match(/.*;system-msg=(?<username>\w*).*/)
           username = second_match[:username]
         end
@@ -60,6 +60,7 @@ class TwitchBot
       elsif message =~ /!start/
         start!
       elsif bits
+        logger.info("LINE => #{line}")
         logger.info("BITS => username: #{bits[:username]}, total: #{bits[:amount]}")
         @boss.new_event(bits: { username: bits[:username], amount: bits[:amount] }) if live_state?
       end
@@ -89,12 +90,12 @@ class TwitchBot
 
   def start!
     send_to_twitch_chat('now starting FeelsAmazingMan')
-    @running = true
+    # @running = true
   end
 
   def stop!
     send_to_twitch_chat('See you soon FeelsBadMan')
-    @running = false
+    # @running = false
   end
 
   def initialize_bot
