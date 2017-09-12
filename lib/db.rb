@@ -1,10 +1,19 @@
 require 'active_record'
+require 'yaml'
+
+if File.exist?('config/application.yml')
+  var_hashes = YAML.load(File.read("config/application.yml"))
+  var_hashes['development'].each do |key, value|
+    ENV[key] = value
+    p "#{key} = #{ENV[key]}"
+  end
+end
 
 ActiveRecord::Base.establish_connection(
   adapter: 'postgresql',
   host: ENV['DB_HOST'],
   database: ENV['DB_NAME'],
-  username: ENV['DB_USERNAME'],
+  username: ENV['DB_USER'],
   password: ENV['DB_PASSWORD']
 )
 
@@ -14,7 +23,7 @@ end
 
 class Bot < ActiveRecord::Base
   belongs_to :user
-  has_one :boss_games, dependent: :destroy
+  has_one :boss, dependent: :destroy
   before_create :generate_token
 
   private
@@ -27,6 +36,6 @@ class Bot < ActiveRecord::Base
   end
 end
 
-class BossGame < ActiveRecord::Base
+class Boss< ActiveRecord::Base
   belongs_to :bot
 end

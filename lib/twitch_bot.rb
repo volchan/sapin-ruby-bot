@@ -1,6 +1,11 @@
 require 'socket'
 require 'logger'
 require 'English'
+require 'rest-client'
+require 'json'
+require 'uri'
+
+Thread.abort_on_exception = true
 
 class TwitchBot
   attr_reader :socket, :logger, :running
@@ -8,37 +13,27 @@ class TwitchBot
     @logger = logger || Logger.new(STDOUT)
     @running = false
     @socket = nil
-    @name = attr[:name]
-    @channel = attr[:channel]
-    @twitch_token = attr[:twitch_token]
+    @name = ENV['TWITCH_BOT_NAME']
+    @channels = attr[:channels]
+    @twitch_token = ENV['TWITCH_TOKEN']
     @boss = nil
+    @heroku_bot = nil
+    @running = false
   end
 
   def run
-    unless heroku_bot = Bot.find_by_channel(@channel)
-      heroku_bot = Bot.create(
-        name: @name,
-        channel: @channel,
-        twitch_token: @twitch_token,
-        user: User.first
-      )
-    end
-
-    initialize_boss(heroku_bot)
-
+    @running = true
     logger.info("Innitializing bot #{inspect}...")
     initialize_bot
-
+    @heroku_bot = Bot.find_by(channel: @channel)
     until @socket.eof?
-      @running = true
-      heroku_bot.update(running: @running)
       line = @socket.gets
-      # logger.info("> #{line}")
+      logger.info("> #{line}")
 
       ping = line.match(/^PING :(.*)$/)
       match = line.match(/.*;display-name=(?<username>\w*);.*PRIVMSG #(?<channel>.+) :(?<message>.+)/)
       usernotice = line.match(/USERNOTICE/)
-      bits = line.match(/.*bits=(?<amount>\d*).*display-name=(?<username>\w*).*/)
+      bits = line.match(/.*bits=(?<amount>\d*).*display-name=(?<username>\w*).* PRIVMSG #(?<channel>\w*)( :(?<message>.*)?)/)
       message = match && match[:message]
       # user = match && match[:username]
       # channel = match && match[:channel]
@@ -49,24 +44,48 @@ class TwitchBot
         sub_match = line.match(/.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/)
         logger.info("LINE => #{line}")
         username = sub_match[:username]
-        if username.empty?
-          second_match = line.match(/.*;system-msg=(?<username>\w*).*/)
-          username = second_match[:username]
-        end
+        username = line.match(/.*;system-msg=(?<username>\w*).*/) if username.empty?
         logger.info("SUB => username: #{username}, type: #{sub_match[:type]}, plan: #{sub_match[:plan]}, month: #{sub_match[:month]}, message: #{sub_match[:message] || 'nil'}")
-        @boss.new_event(sub: { username: sub_match[:username], plan: sub_match[:plan] }) if live_state?
+        # @boss.new_event(sub: { username: sub_match[:username], plan: sub_match[:plan] }) if live_state?
+        RestClient.patch(
+          "#{ENV['HEROKU_DOMAIN']}/bosses/#{@heroku_bot.boss.id}",
+          token: @heroku_bot.token,
+          bot_id: @heroku_bot.id,
+          event: {
+            boss: @heroku_bot.boss.id,
+            event_type: 'sub',
+            channel: sub_match[:channel],
+            username: username,
+            type: sub_match[:type],
+            plan: sub_match[:plan],
+            month: sub_match[:month],
+            message: sub_match[:message] || 'nil'
+          }
+        ) if live_state?
       elsif message =~ /!stop/
         stop!
       elsif message =~ /!start/
         start!
       elsif bits
+        username = line.match(/@(?<username>\w*).tmi.twitch.tv/) if username.empty?
         logger.info("LINE => #{line}")
         logger.info("BITS => username: #{bits[:username]}, total: #{bits[:amount]}")
-        @boss.new_event(bits: { username: bits[:username], amount: bits[:amount] }) if live_state?
+        # @boss.new_event(bits: { username: bits[:username], amount: bits[:amount] }) if live_state?
+        RestClient.patch(
+          "#{ENV['HEROKU_DOMAIN']}/bosses/#{@heroku_bot.boss.id}",
+          token: @heroku_bot.token,
+          bot_id: @heroku_bot.id,
+          event: {
+            event_type: 'bits',
+            channel: bits[:channel],
+            username: bits[:username],
+            amount: bits[:amount],
+            message: bits[:message] || 'nil'
+          }
+        ) if live_state?
       end
     end
     @running = false
-    heroku_bot.update(running: @running)
   end
 
   def live_state?
@@ -104,22 +123,13 @@ class TwitchBot
     logger.info("connected to socket : #{@socket.inspect}")
     send_to_twitch("PASS #{@twitch_token}")
     send_to_twitch("NICK #{@name}")
-    send_to_twitch("JOIN ##{@channel}")
+    @channels.each do |channel|
+      send_to_twitch("JOIN ##{channel}")
+      logger.info("connected to ##{channel}")
+    end
     send_to_twitch('CAP REQ :twitch.tv/membership')
     send_to_twitch('CAP REQ :twitch.tv/commands')
     send_to_twitch('CAP REQ :twitch.tv/tags')
-    logger.info("connected to ##{@channel}")
     # send_to_twitch_chat("Salut c'est moi #{@username} Kappa !")
-  end
-
-  def initialize_boss(heroku_bot)
-    logger.info('initializing boss...')
-    @boss = Game.new(@logger, self, heroku_bot)
-    logger.info('boss initialized...')
-    logger.info(@boss.name)
-    logger.info(@boss.avatar)
-    logger.info(@boss.shield)
-    logger.info("#{@boss.current_hp}/#{@boss.max_hp}")
-    logger.info(@boss.saved_at)
   end
 end
