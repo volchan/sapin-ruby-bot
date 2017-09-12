@@ -8,23 +8,17 @@ require 'uri'
 Thread.abort_on_exception = true
 
 class TwitchBot
-  attr_reader :socket, :logger, :running
+  attr_reader :logger
   def initialize(attr = {})
     @logger = logger || Logger.new(STDOUT)
-    @running = false
     @socket = nil
     @name = ENV['TWITCH_BOT_NAME']
     @channels = attr[:channels]
     @twitch_token = ENV['TWITCH_TOKEN']
-    @boss = nil
-    @heroku_bot = []
-    @running = false
     @connected_channels = []
   end
 
   def run
-    p @channel_updater
-    @running = true
     logger.info("Innitializing bot #{inspect}...")
     initialize_bot
     until @socket.eof?
@@ -36,13 +30,12 @@ class TwitchBot
       usernotice = line.match(/USERNOTICE/)
       bits = line.match(/.*bits=(?<amount>\d*).*display-name=(?<username>\w*).* PRIVMSG #(?<channel>\w*)( :(?<message>.*)?)/)
       message = match && match[:message]
+      channel = match && match[:channel]
       # user = match && match[:username]
-      # channel = match && match[:channel]
 
       if ping
         send_to_twitch("PONG #{ping[1]}")
       elsif usernotice
-        p @channel_updater.alive?
         sub_match = line.match(/.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/)
         logger.info("LINE => #{line}")
         username = sub_match[:username]
@@ -67,9 +60,9 @@ class TwitchBot
           )
         end
       elsif message =~ /!stop/
-        stop!
+        stop(channel)
       elsif message =~ /!start/
-        start!
+        start(channel)
       elsif bits
         username = line.match(/@(?<username>\w*).tmi.twitch.tv/) if username.empty?
         logger.info("LINE => #{line}")
@@ -92,7 +85,6 @@ class TwitchBot
         end
       end
     end
-    @running = false
   end
 
   def live_state?(channel)
@@ -113,18 +105,16 @@ class TwitchBot
     @socket.puts(message)
   end
 
-  def send_to_twitch_chat(message)
-    @socket.puts("PRIVMSG ##{@channel} :#{message}")
+  def send_to_twitch_chat(attr)
+    @socket.puts("PRIVMSG ##{attr[:channel]} :#{attr[:message]}")
   end
 
-  def start!
-    send_to_twitch_chat('now starting FeelsAmazingMan')
-    # @running = true
+  def start(channel)
+    send_to_twitch_chat(channel: channel, message: 'now starting FeelsAmazingMan')
   end
 
-  def stop!
-    send_to_twitch_chat('See you soon FeelsBadMan')
-    # @running = false
+  def stop(channel)
+    send_to_twitch_chat(channel: channel, message: 'See you soon FeelsBadMan')
   end
 
   def update_channels
@@ -155,6 +145,5 @@ class TwitchBot
     send_to_twitch('CAP REQ :twitch.tv/membership')
     send_to_twitch('CAP REQ :twitch.tv/commands')
     send_to_twitch('CAP REQ :twitch.tv/tags')
-    # send_to_twitch_chat("Salut c'est moi #{@username} Kappa !")
   end
 end
