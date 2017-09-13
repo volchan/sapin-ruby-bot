@@ -4,7 +4,7 @@ class CommandMatcher
   end
 
   def dispatch(attr)
-    broadcaster = attr['badges'].gsub(/\/\d,?/, ' ').split.include?('broadcaster')
+    broadcaster = attr['badges'].gsub(%r{\/\d,?}, ' ').split.include?('broadcaster')
     attr['username'].empty? ? username = attr['username_backup'] : username = attr['username']
     mod = attr['mod']
     subscriber = attr['subscriber']

@@ -25,7 +25,7 @@ class TwitchBot
     initialize_bot
     until @socket.eof?
       line = @socket.gets
-      logger.info("> #{line}")
+      # logger.info("> #{line}")
 
       if ping = @regexp_matcher.ping(line)
         send_to_twitch("PONG #{ping[1]}")
@@ -98,7 +98,7 @@ class TwitchBot
   def update_channels
     @channel_updater = Thread.new do
       loop do
-        sleep 30
+        sleep 60
         Bot.pluck(:channel).each do |channel|
           next if @connected_channels.include? channel
           connect_to_twitch_tchat(channel)
