@@ -1,3 +1,4 @@
+require_relative 'lib/regexp_matcher'
 require_relative 'lib/twitch_bot'
 require_relative 'lib/db'
 
