@@ -25,7 +25,6 @@ class TwitchBot
     initialize_bot
     until @socket.eof?
       line = @socket.gets
-      # logger.info("> #{line}")
 
       if ping = @regexp_matcher.ping(line)
         send_to_twitch("PONG #{ping[1]}")
@@ -99,9 +98,14 @@ class TwitchBot
     @channel_updater = Thread.new do
       loop do
         sleep 60
-        Bot.pluck(:channel).each do |channel|
-          next if @connected_channels.include? channel
+        heroku_bots = Bot.pluck(:channel)
+        heroku_bots.each do |channel|
+          next if @connected_channels.include?(channel)
           connect_to_twitch_tchat(channel)
+        end
+        @connected_channels.each do |channel|
+          next if heroku_bots.include?(channel)
+          disconnect_from_twitch_tchat(channel)
         end
       end
     end
@@ -125,5 +129,11 @@ class TwitchBot
     send_to_twitch("JOIN ##{channel}")
     logger.info("connected to ##{channel}")
     @connected_channels << channel
+  end
+
+  def disconnect_from_twitch_tchat(channel)
+    send_to_twitch("PART ##{channel}")
+    logger.info("disconnected from ##{channel}")
+    @connected_channels.delete(channel)
   end
 end
