@@ -18,13 +18,13 @@ class RegexpMatcher
     matcher(line, regexp)
   end
 
-  def bits_username(line)
+  def priv_username(line)
     regexp = /@(?<username>\w*).tmi.twitch.tv/
     matcher(line, regexp)
   end
 
   def command(line)
-    regexp = /@badges=(?<badges>.*);color.*;display-name=(?<username>\w*).*;mod=(?<mod>(1|0));.*subscriber=(?<subscriber>(1|0));.*PRIVMSG #(?<channel>.+) :(?<message>!\w+) (?<options>.*)/
+    regexp = /@badges=(?<badges>.*);.*;display-name=(?<username>.*);emotes=.*;mod=(?<mod>(1|0));.*subscriber=(?<subscriber>(1|0));.*@(?<username_backup>.*).tmi.twitch.tv PRIVMSG #(?<channel>.+) :(?<command>!\w+)( (?<options>.*))?/
     matcher(line, regexp)
   end
 

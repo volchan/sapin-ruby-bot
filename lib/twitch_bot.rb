@@ -16,7 +16,8 @@ class TwitchBot
     @channels = attr[:channels]
     @twitch_token = ENV['TWITCH_TOKEN']
     @connected_channels = []
-    @matcher = RegexpMatcher.new
+    @regexp_matcher = RegexpMatcher.new
+    @command_matcher = CommandMatcher.new(self)
   end
 
   def run
@@ -24,12 +25,12 @@ class TwitchBot
     initialize_bot
     until @socket.eof?
       line = @socket.gets
-      # logger.info("> #{line}")
+      logger.info("> #{line}")
 
-      if @matcher.ping(line)
+      if ping = @regexp_matcher.ping(line)
         send_to_twitch("PONG #{ping[1]}")
-      elsif sub_match = @matcher.subs(line)
-        sub_match['username'].empty? ? username = @matcher.subs_username(line) : username = sub_match['username']
+      elsif sub_match = @regexp_matcher.subs(line)
+        sub_match['username'].empty? ? username = @regexp_matcher.subs_username(line) : username = sub_match['username']
         logger.info("LINE => #{line}")
         logger.info("SUB => username: #{username}, type: #{sub_match['type']}, channel: #{sub_match['channel']}, plan: #{sub_match['plan']}, month: #{sub_match['month']}, message: #{sub_match['message']}")
         logger.info('=' * 20)
@@ -43,8 +44,8 @@ class TwitchBot
           message: sub_match['message']
         }
         send_to_heroku(event, sub_match['channel']) if live_state?(sub_match['channel'])
-      elsif bits_match = @matcher.bits(line)
-        bits_match['username'].empty? ? username = @matcher.bits_username(line) : username = bits_match['username']
+      elsif bits_match = @regexp_matcher.bits(line)
+        bits_match['username'].empty? ? username = @regexp_matcher.bits_username(line) : username = bits_match['username']
         logger.info("LINE => #{line}")
         logger.info("BITS => username: #{bits_match['username']}, channel: #{bits_match['channel']}, total: #{bits_match['amount']}, message: #{bits_match['message']}")
         logger.info('=' * 20)
@@ -56,8 +57,8 @@ class TwitchBot
           message: bits_match['message']
         }
         send_to_heroku(event, bits_match['channel']) if live_state?(bits_match['channel'])
-      elsif @matcher.command(line)
-
+      elsif command_match = @regexp_matcher.command(line)
+        @command_matcher.dispatch(command_match)
       end
     end
   end
