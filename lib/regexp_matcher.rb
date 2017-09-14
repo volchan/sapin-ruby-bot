@@ -18,7 +18,7 @@ class RegexpMatcher
     matcher(line, regexp)
   end
 
-  def priv_username(line)
+  def bits_username(line)
     regexp = /@(?<username>\w*).tmi.twitch.tv/
     matcher(line, regexp)
   end

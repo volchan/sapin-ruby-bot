@@ -75,8 +75,7 @@ class TwitchBot
     heroku_bot = find_bot(channel)
     RestClient.patch(
       "#{ENV['HEROKU_DOMAIN']}/bosses/#{heroku_bot.boss.id}",
-      token: heroku_bot.token,
-      bot_id: heroku_bot.id,
+      token: heroku_bot.boss.token,
       event: event
     )
   end
