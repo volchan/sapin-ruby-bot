@@ -29,10 +29,9 @@ class TwitchBot
       if ping = @regexp_matcher.ping(line)
         send_to_twitch("PONG #{ping[1]}")
       elsif sub_match = @regexp_matcher.subs(line)
-        sub_match['username'].empty? ? username = @regexp_matcher.subs_username(line) : username = sub_match['username']
+        sub_match['username'].empty? ? username = @regexp_matcher.subs_username(line)['username'] : username = sub_match['username']
         logger.info("LINE => #{line}")
         logger.info("SUB => username: #{username}, type: #{sub_match['type']}, channel: #{sub_match['channel']}, plan: #{sub_match['plan']}, month: #{sub_match['month']}, message: #{sub_match['message']}")
-        logger.info('=' * 20)
         event = {
           event_type: 'sub',
           channel: sub_match['channel'],
@@ -43,11 +42,11 @@ class TwitchBot
           message: sub_match['message']
         }
         send_to_heroku(event, sub_match['channel']) if live_state?(sub_match['channel'])
+        logger.info('=' * 20)
       elsif bits_match = @regexp_matcher.bits(line)
-        bits_match['username'].empty? ? username = @regexp_matcher.bits_username(line) : username = bits_match['username']
+        bits_match['username'].empty? ? username = @regexp_matcher.bits_username(line)['username'] : username = bits_match['username']
         logger.info("LINE => #{line}")
         logger.info("BITS => username: #{bits_match['username']}, channel: #{bits_match['channel']}, total: #{bits_match['amount']}, message: #{bits_match['message']}")
-        logger.info('=' * 20)
         event = {
           event_type: 'bits',
           channel: bits_match['channel'],
@@ -56,6 +55,7 @@ class TwitchBot
           message: bits_match['message']
         }
         send_to_heroku(event, bits_match['channel']) if live_state?(bits_match['channel'])
+        logger.info('=' * 20)
       elsif command_match = @regexp_matcher.command(line)
         @command_matcher.dispatch(command_match)
       end
@@ -66,6 +66,7 @@ class TwitchBot
     api_call = RestClient.get("https://api.twitch.tv/kraken/streams/#{channel}?client_id=#{ENV['TWITCH_CLIENT_ID']}")
     parsed_api_call = JSON.parse(api_call)
     stream = parsed_api_call['stream']
+    logger.info("> live: #{stream ? true : false}")
     return if stream.nil?
     stream_type = stream['stream_type']
     stream_type == 'live'
