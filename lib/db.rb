@@ -11,10 +11,10 @@ end
 
 ActiveRecord::Base.establish_connection(
   adapter: 'postgresql',
-  host: ENV['DB_HOST'],
-  database: ENV['DB_NAME'],
-  username: ENV['DB_USER'],
-  password: ENV['DB_PASSWORD']
+  host: ENV['DB_HOST'], # comment to tests on localhost
+  username: ENV['DB_USER'], # comment to tests on localhost
+  password: ENV['DB_PASSWORD'], # comment to tests on localhost
+  database: ENV['DB_NAME']
 )
 
 class User < ActiveRecord::Base
