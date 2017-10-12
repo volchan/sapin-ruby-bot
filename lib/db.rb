@@ -2,7 +2,7 @@ require 'active_record'
 require 'yaml'
 
 if File.exist?('config/application.yml')
-  var_hashes = YAML.load(File.read('config/application.yml'))
+  var_hashes = YAML.safe_load(File.read('config/application.yml'))
   var_hashes['development'].each do |key, value|
     ENV[key] = value
     p "#{key} = #{ENV[key]}"
