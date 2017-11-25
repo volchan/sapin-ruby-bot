@@ -18,6 +18,11 @@ class RegexpMatcher
     matcher(line, regexp)
   end
 
+  def sub_gifted_to(line)
+    regexp = /.*;msg-param-recipient-display-name=(?<gifted_to>.*);msg-param-recipient-id=.*/
+    matcher(line, regexp)
+  end
+
   def bits_username(line)
     regexp = /@(?<username>\w*).tmi.twitch.tv/
     matcher(line, regexp)
