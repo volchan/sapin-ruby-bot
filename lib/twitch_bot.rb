@@ -31,12 +31,14 @@ class TwitchBot
       elsif sub_match = @regexp_matcher.subs(line)
         sub_match['username'].empty? ? username = @regexp_matcher.subs_username(line)['username'] : username = sub_match['username']
         username.empty? ? username = sub_match['login'] : username
+        sub_match['gifted_to'] = @regexp_matcher.sub_gifted_to(line)['gifted_to'] if sub_match['type'] == 'subgift'
         logger.info("LINE => #{line}")
-        logger.info("SUB => username: #{username}, type: #{sub_match['type']}, channel: #{sub_match['channel']}, plan: #{sub_match['plan']}, month: #{sub_match['month']}, message: #{sub_match['message']}")
+        logger.info("SUB => username: #{username}, type: #{sub_match['type']}, gifted_to: #{sub_match['gifted_to']}, channel: #{sub_match['channel']}, plan: #{sub_match['plan']}, month: #{sub_match['month']}, message: #{sub_match['message']}")
         event = {
           event_type: 'sub',
           channel: sub_match['channel'],
           username: username,
+          gifted_to: sub_match['gifted_to'],
           type: sub_match['type'],
           plan: sub_match['plan'],
           month: sub_match['month'],

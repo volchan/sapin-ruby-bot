@@ -2,7 +2,7 @@ require 'active_record'
 require 'yaml'
 
 if File.exist?('config/application.yml')
-  var_hashes = YAML.load(File.read('config/application.yml'))
+  var_hashes = YAML.safe_load(File.read('config/application.yml'))
   var_hashes['development'].each do |key, value|
     ENV[key] = value
     p "#{key} = #{ENV[key]}"
@@ -11,9 +11,9 @@ end
 
 ActiveRecord::Base.establish_connection(
   adapter: 'postgresql',
-  # host: ENV['DB_HOST'], # comment to tests on localhost
-  # username: ENV['DB_USER'], # comment to tests on localhost
-  # password: ENV['DB_PASSWORD'], # comment to tests on localhost
+  host: ENV['DB_HOST'], # comment to tests on localhost
+  username: ENV['DB_USER'], # comment to tests on localhost
+  password: ENV['DB_PASSWORD'], # comment to tests on localhost
   database: ENV['DB_NAME']
 )
 
