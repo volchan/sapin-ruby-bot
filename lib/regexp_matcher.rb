@@ -4,7 +4,7 @@ class RegexpMatcher
   end
 
   def subs(line)
-    regexp = /.*;display-name=(?<username>\w*).*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/
+    regexp = /.*;display-name=(?<username>\w*).*login=(?<login>.*);m.*msg-id=(?<type>\w*);msg-param-months=(?<month>\w*).*;msg-param-sub-plan=(?<plan>\w*).* USERNOTICE #(?<channel>\w*)( :(?<message>.*))?/
     matcher(line, regexp)
   end
 

@@ -30,6 +30,7 @@ class TwitchBot
         send_to_twitch("PONG #{ping[1]}")
       elsif sub_match = @regexp_matcher.subs(line)
         sub_match['username'].empty? ? username = @regexp_matcher.subs_username(line)['username'] : username = sub_match['username']
+        username.empty? ? username = sub_match['login'] : username
         logger.info("LINE => #{line}")
         logger.info("SUB => username: #{username}, type: #{sub_match['type']}, channel: #{sub_match['channel']}, plan: #{sub_match['plan']}, month: #{sub_match['month']}, message: #{sub_match['message']}")
         event = {
