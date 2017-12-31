@@ -120,9 +120,7 @@ class TwitchBot
     logger.info("connected to socket : #{@socket.inspect}")
     send_to_twitch("PASS #{@twitch_token}")
     send_to_twitch("NICK #{@name}")
-    @channels.each do |channel|
-      connect_to_twitch_tchat(channel)
-    end
+    @channels.each { |channel| connect_to_twitch_tchat(channel) }
     send_to_twitch('CAP REQ :twitch.tv/membership')
     send_to_twitch('CAP REQ :twitch.tv/commands')
     send_to_twitch('CAP REQ :twitch.tv/tags')
